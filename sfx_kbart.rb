@@ -3,7 +3,7 @@
 
 # loop through files in weekly kbart extract in $SFXLCL41/dbs/scratch
 # extract target name from filename and add to combined output file
-# folder path is `./princeton`
+# sfx requires being on Princeton network as of 201910
 # pmg
 # from 20181116
 
@@ -18,15 +18,16 @@ require 'yaml'
 require 'zip'
 #require 'zlib'
 
-#$conf = YAML.load_file('sfx_kbart.yml')
-$kbart_server = ENV['READCUBE_HOST'] #$conf['host'] 
-$kbart_user = ENV['READCUBE_USER']#$conf['user'] 
-$kbart_pwd = ENV['READCUBE_PASSWORD'] #$conf['pwd']
-$sfx_server = ENV['SFX_HOST']  #$conf['sfx_host']
-$sfx_user = ENV['SFX_USER'] #$conf['sfx_user']
-$sfx_pwd = ENV['SFX_PASSWORD']  #$conf['sfx_pwd']
+$conf = YAML.load_file('sfx_kbart.yml')
+$kbart_server = $conf['host']
+$kbart_user = $conf['user']
+$kbart_pwd = $conf['pwd']
+$sfx_server = $conf['sfx_host']
+$sfx_user = $conf['sfx_user']
+$sfx_pwd = $conf['sfx_pwd']
 $local_dir = './scratch'
 $out_dir = './out'
+
 $logger = Logger.new('logfile.log','weekly')
 
 # TODO: error handling
@@ -46,7 +47,6 @@ def main()
 	filename = 'EXPORT_PORTFOLIOS_PRINCETON_SFX_'+filename+'.tsv'
 	combine_files(temp_dir,filename)
 	cleanup(temp_dir)
-	ftp_files(filename)
 	$logger.info('all done')
 	$logger.info '=' * 25
 end
@@ -78,7 +78,7 @@ def combine_files(indir,outfile)
 	Dir.glob(indir+'/*.txt') do |file|
 		next if file == '.' or file == '..'
 		
-		CSV.read(file, "r", { :col_sep => "\t" , :headers => true , :quote_char => "\x00"}).each do |row|
+		CSV.read(file, "r", { :col_sep => "\t" , :headers => true , :quote_char => "\x00", :encoding => 'utf-8'}).each do |row|
 			filename = File.basename(file)
 			filename = filename[0..-20] # filename is the name of the target, minus the date and .txt
 			
@@ -88,6 +88,7 @@ def combine_files(indir,outfile)
 			end
 		end
 	end
+	compress_file(outfile)
 	$logger.info('files combined')
 end
 
@@ -105,12 +106,12 @@ def compress_file(combo_file)
 	'''
 	zip up the file
 	'''
-	# TODO: check, is this needed?
 	combo_file_noext = File.basename(combo_file,'.tsv')
 	save_file_path = combo_file_noext + '.zip'
 	Zip::File.open(save_file_path, Zip::File::CREATE) do |zipfile|
-		zipfile.add('test',combo_file)
+		zipfile.add(combo_file,combo_file)
 	end
+	ftp_files(save_file_path)
 end
 
 
@@ -118,8 +119,11 @@ def ftp_files(localfile)
 	'''
 	ftp resulting files to access anywhere server
 	'''
-	Net::FTP.open($kbart_server,$kbart_user,$kbart_pwd) do |ftp|
-	ftp.chdir('/princeton')
+	s = $kbart_server
+	u = $kbart_user
+	p = $kbart_pwd
+	ftp = Net::FTP.open(s, u, p) do |ftp|
+	#ftp.chdir('/princeton') # they go in the root dir as of 20190122
 	ftp.putbinaryfile(localfile)
 	$logger.info('%s ftped over to %s' % [localfile,$kbart_server])
 	end
