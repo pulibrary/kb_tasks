@@ -36,14 +36,14 @@ def main()
 	$logger.info '=' * 25
 	$logger.info 'program started' 
 	scp_from_sfx()
-	local_zip_dir = './scratch/export_kbart_*.zip'
+	local_zip_dir = './scratch/Kbart_*'
 	temp_dir = './temp'
 	filename = ''
 	f = Dir.glob(local_zip_dir).max_by {|f| File.mtime(f)}
 	puts f
 		filename = File.basename(f)
-		filename = filename[13..26]
-		extract_zip(f,temp_dir)
+		filename = filename[6..19]
+		## extract_zip(f,temp_dir) # no zip as of 202005
 	filename = 'EXPORT_PORTFOLIOS_PRINCETON_SFX_'+filename+'.tsv'
 	combine_files(temp_dir,filename)
 	cleanup(temp_dir)
@@ -108,7 +108,7 @@ def compress_file(combo_file)
 	'''
 	combo_file_noext = File.basename(combo_file,'.tsv')
 	save_file_path = combo_file_noext + '.zip'
-	Zip::File.open(save_file_path, Zip::File::CREATE) do |zipfile|
+	::Zip::File.open(save_file_path, Zip::File::CREATE) do |zipfile|
 		zipfile.add(combo_file,combo_file)
 	end
 	ftp_files(save_file_path)
@@ -139,12 +139,12 @@ def scp_from_sfx()
 	Net::SSH.start($sfx_server, $sfx_user, :password => $sfx_pwd) do |ssh|
 		this_monday = Date.parse('Monday') # head -1 doesn't work reliably for some reason so adding this as well
 		this_monday = this_monday.strftime('%Y%m%d')
-		ssh.exec!("find /exlibris/sfx_ver/sfx4_1/sfxlcl41/dbs/scratch/ -name '*"+this_monday+"*.zip' | head -1") do |channel, stream, data|
+		ssh.exec!("find /exlibris/sfx_ver/sfx4_1/sfxlcl41/dbs/scratch/ -name '*"+this_monday+"*' | head -1") do |channel, stream, data|
 			datum = data
 		end
 		Net::SCP.start($sfx_server, $sfx_user, :password => $sfx_pwd) do |scp|
 			$logger.info('scp started')
-			scp.download! datum.strip, $local_dir
+			scp.download! datum.strip, $local_dir, :recursive => true
 			$logger.info('%s downloaded to %s' % [datum.strip,$local_dir])
 		end
 	end
