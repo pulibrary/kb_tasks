@@ -36,10 +36,10 @@ def main
   $logger.info '=' * 25
   $logger.info 'program started'
   scp_from_sfx
-  local_zip_dir = './scratch/Kbart_*'
+  downloaded_files = './scratch/Kbart_*'
   temp_dir = './temp'
   filename = ''
-  f = Dir.glob(local_zip_dir).max_by { |f| File.mtime(f) }
+  f = Dir.glob(downloaded_files).max_by { |f| File.mtime(f) }
   puts f
   filename = File.basename(f)
   filename = filename[6..19]
@@ -133,7 +133,7 @@ def scp_from_sfx
   Net::SSH.start($sfx_server, $sfx_user, password: $sfx_pwd) do |ssh|
     this_monday = Date.parse('Monday') # head -1 doesn't work reliably for some reason so adding this as well
     this_monday = this_monday.strftime('%Y%m%d')
-    ssh.exec!("find /exlibris/sfx_ver/sfx4_1/sfxlcl41/dbs/scratch/ -name '*" + this_monday + "*' | head -1") do |_channel, _stream, data|
+    ssh.exec!("find /exlibris/sfx_ver/sfx4_1/sfxlcl41/dbs/scratch/ -name '*Kbart_" + this_monday + "*' | head -1") do |_channel, _stream, data|
       datum = data
     end
     Net::SCP.start($sfx_server, $sfx_user, password: $sfx_pwd) do |scp|
