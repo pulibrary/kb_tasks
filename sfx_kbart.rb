@@ -4,6 +4,7 @@
 # loop through files in weekly kbart extract in $SFXLCL41/dbs/scratch
 # extract target name from filename and add to combined output file
 # sfx requires being on Princeton network as of 201910
+# adjusted filename 20201215 from 'Kbart_*' to 'export_kbart*'
 # pmg
 # from 20181116
 
@@ -36,19 +37,20 @@ def main
   $logger.info '=' * 25
   $logger.info 'program started'
   scp_from_sfx
-  downloaded_files = './scratch/Kbart_*'
+  downloaded_files = './scratch/export_kbart_*'
   temp_dir = './temp'
   filename = ''
   f = Dir.glob(downloaded_files).max_by { |f| File.mtime(f) }
-  puts f
+
   filename = File.basename(f)
-  filename = filename[6..19]
-  ## extract_zip(f,temp_dir) # no zip as of 202005
+  filename = filename[13..26]
+  extract_zip(f,temp_dir)
   filename = 'EXPORT_PORTFOLIOS_PRINCETON_SFX_' + filename + '.tsv'
   combine_files(temp_dir, filename)
   cleanup(temp_dir)
   $logger.info('all done')
   $logger.info '=' * 25
+  puts 'done'
 end
 
 def extract_zip(z, temp_dir)
@@ -107,7 +109,7 @@ def compress_file(combo_file)
   ::Zip::File.open(save_file_path, Zip::File::CREATE) do |zipfile|
     zipfile.add(combo_file, combo_file)
   end
-  ftp_files(save_file_path)
+  #ftp_files(save_file_path)
 end
 
 def ftp_files(localfile)
@@ -133,7 +135,7 @@ def scp_from_sfx
   Net::SSH.start($sfx_server, $sfx_user, password: $sfx_pwd) do |ssh|
     this_monday = Date.parse('Monday') # head -1 doesn't work reliably for some reason so adding this as well
     this_monday = this_monday.strftime('%Y%m%d')
-    ssh.exec!("find /exlibris/sfx_ver/sfx4_1/sfxlcl41/dbs/scratch/ -name '*Kbart_" + this_monday + "*' | head -1") do |_channel, _stream, data|
+    ssh.exec!("find /exlibris/sfx_ver/sfx4_1/sfxlcl41/dbs/scratch/ -name 'export_kbart_" + this_monday + "*' | head -1") do |_channel, _stream, data|
       datum = data
     end
     Net::SCP.start($sfx_server, $sfx_user, password: $sfx_pwd) do |scp|
