@@ -109,7 +109,7 @@ def compress_file(combo_file)
   ::Zip::File.open(save_file_path, Zip::File::CREATE) do |zipfile|
     zipfile.add(combo_file, combo_file)
   end
-  #ftp_files(save_file_path)
+  ftp_files(save_file_path)
 end
 
 def ftp_files(localfile)
